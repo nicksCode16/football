@@ -160,6 +160,46 @@
            font-size: 14px;
            color: #555;
         }
+        .modal {
+            position: fixed;
+            top:0; left:0; right:0; bottom:0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modalContent {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+         }
+        #teamGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, 60px);
+            gap: 10px;
+            justify-content: center;
+        }
+        #teamGrid img {
+            width: 60px; height: 60px; cursor: pointer;
+        }
+        #closeModal {
+            font-family: 'itim', cursive;
+            border-radius: 8px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .pickTeamBtn {
+            font-family: 'itim', cursive;
+            border-radius: 8px;
+            border-color: #26de78;
+        }
+        .predictionTabText {
+            color: white;
+            font-family: 'itim', cursive;
+        }
     </style>
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Itim&amp;display=swap" rel="stylesheet">
@@ -171,20 +211,16 @@
             <button id='addMatchup' class='mainButtons'>Add Matchups</button>
             <button id='rankings' class='mainButtons'>Rankings</button>
             <button id='predictions' class='mainButtons'>Predictions</button>
-            <button id='standings' class='mainButtons'>Standings</button>
-            <button id='schedules' class='mainButtons'>Schedules</button>
         </section>
+
         <section id='matchups'>
-            <div id='weekNum'>
-                <label id='weekNumLabel'>Week:</label>
-                <input type='number' id='weekNumInput' min='1' max='17' step='1' value='1'>
-            </div>
             <div id='matchupBox' class='matchupBox'>
                 <p3 class='parlayTitle'>Matchups</p3>
                 <button id='addGameButton' class='addGameButton'>Add Game</button>
                 <section id='matchupSpace'>
                 </section>
             </div>
+            <button id="clearAllGames" class="mainButtons">Clear All Games</button>
         </section>
 
         <section id='rankingsSection' class='hidden'>
@@ -192,32 +228,34 @@
         </section>
 
         <section id='predictionsSection' class='hidden'>
+            <div id="predictionsList"></div>
         </section>
 
-        <section id='standingsSection' class='hidden'>
-        </section>
+        <div id="teamSelectModal" class="hidden modal">
+            <div class="modalContent">
+                <h3>Select a Team</h3>
+                <div id="teamGrid"></div>
+                <button id="closeModal">Close</button>
+            </div>
+        </div>
 
-        <section id='schedulesSection' class='hidden'>
-        </section>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script>
         window.addEventListener("DOMContentLoaded", (event) => {
             
+            let currentTeamButton = null;
+
             //code for managing tabs
             const addMatchupButton = document.getElementById('addMatchup');
             const rankingsButton = document.getElementById('rankings');
             const predictionsButton = document.getElementById('predictions');
-            const standingsButton = document.getElementById('standings');
-            const schedulesButton = document.getElementById('schedules');
-            const buttonsList = [addMatchupButton, rankingsButton, predictionsButton, standingsButton, schedulesButton];
+            const buttonsList = [addMatchupButton, rankingsButton, predictionsButton];
 
             const matchupSection =  document.getElementById('matchups');
             const rankingSection =  document.getElementById('rankingsSection');
             const predictionSection =  document.getElementById('predictionsSection');
-            const standingSection =  document.getElementById('standingsSection');
-            const scheduleSection =  document.getElementById('schedulesSection');
-            const sectionsList = [matchupSection, rankingSection, predictionSection, standingSection, scheduleSection]
+            const sectionsList = [matchupSection, rankingSection, predictionSection]
 
             buttonsList.forEach((button, index) => {
                 button.addEventListener('click', () => {
@@ -237,25 +275,22 @@
             const matchupSpace = document.getElementById('matchupSpace');
 
             addGameButton.addEventListener('click', () => {
+                // push a new blank game object into array
+                games.push({home:null, away:null, prediction:null});
+                saveGames();
+
+                // render buttons for this game
+                const index = games.length - 1;
                 const matchUpTeamsSection = document.createElement('section');
                 matchUpTeamsSection.classList.add('matchUpTeamsSection');
+
+                matchUpTeamsSection.innerHTML = `
+                  <button class="pickTeamBtn" data-game="${index}" data-side="home">Select Team 1</button>
+                  <span class="versusText">vs</span>
+                  <button class="pickTeamBtn" data-game="${index}" data-side="away">Select Team 2</button>
+                `;
+
                 matchupSpace.appendChild(matchUpTeamsSection);
-
-                const chooseFirstTeamButton = document.createElement('button');
-                const chooseSecondTeamButton = document.createElement('button');
-                const versusText = document.createElement('p5');
-
-                chooseFirstTeamButton.classList.add('selectTeamButton1');
-                chooseSecondTeamButton.classList.add('selectTeamButton2');
-                versusText.classList.add('versusText');
-
-                chooseFirstTeamButton.innerHTML = 'Select Team 1';
-                chooseSecondTeamButton.innerHTML = 'Select Team 2';
-                versusText.innerHTML = 'vs';
-
-                matchUpTeamsSection.appendChild(chooseFirstTeamButton);
-                matchUpTeamsSection.appendChild(versusText);
-                matchUpTeamsSection.appendChild(chooseSecondTeamButton);
             });
 
             //rankings tab stuff
@@ -350,6 +385,140 @@
                 });
                 localStorage.setItem("teamRankings", JSON.stringify(updated));
                 }
+            });
+
+            // Build modal team grid once
+            const teamGrid = document.getElementById('teamGrid');
+            teams.forEach(team => {
+                const img = document.createElement('img');
+                img.src = team.logo;
+                img.alt = team.name;
+                img.title = team.name;
+                img.addEventListener('click', () => {
+                    if (currentTeamButton) {
+                        const gameIndex = parseInt(currentTeamButton.dataset.game);
+                        const side = currentTeamButton.dataset.side; // 'home' or 'away'
+
+                        // update games array
+                        games[gameIndex][side] = {name: team.name, logo: team.logo};
+                        saveGames();
+
+                        // update button text
+                        currentTeamButton.innerHTML = `<img src="${team.logo}" alt="${team.name}" width="30"> ${team.name}`;
+
+                        // refresh predictions tab so it shows matchup immediately
+                        renderPredictions();
+                    }
+                    console.log("Closing modal after selecting:", team.name);
+                    document.getElementById('teamSelectModal').classList.add('hidden');
+                });
+                teamGrid.appendChild(img);
+            });
+
+            // Close modal
+            document.getElementById('closeModal').addEventListener('click', () => {
+                document.getElementById('teamSelectModal').classList.add('hidden');
+            });
+
+            // When you render your game rows, each team slot has a button:
+            function renderGameRow(gameIndex) {
+                return `
+                    <div class="gameRow">
+                        <button class="pickTeamBtn" data-game="${gameIndex}" data-side="home">Pick Home Team</button>
+                        <span>vs</span>
+                        <button class="pickTeamBtn" data-game="${gameIndex}" data-side="away">Pick Away Team</button>
+                    </div>`;
+            }
+
+            // Delegate click events to open modal
+            document.addEventListener('click', e => {
+                if (e.target.classList.contains('pickTeamBtn')) {
+                    currentTeamButton = e.target;
+                    document.getElementById('teamSelectModal').classList.remove('hidden');
+                }
+            });
+
+            let games = []; // [{home:{name,logo}, away:{name,logo}, prediction:null}, ...]
+            loadGames();
+
+            games.forEach((g,i)=>{
+                const matchUpTeamsSection = document.createElement('section');
+                matchUpTeamsSection.classList.add('matchUpTeamsSection');
+
+                matchUpTeamsSection.innerHTML = `
+                  <button class="pickTeamBtn" data-game="${i}" data-side="home">
+                    ${g.home ? `<img src="${g.home.logo}" width="30"> ${g.home.name}` : 'Select Team 1'}
+                  </button>
+                  <span class="versusText">vs</span>
+                  <button class="pickTeamBtn" data-game="${i}" data-side="away">
+                    ${g.away ? `<img src="${g.away.logo}" width="30"> ${g.away.name}` : 'Select Team 2'}
+                  </button>
+                `;
+                matchupSpace.appendChild(matchUpTeamsSection);
+            });
+
+            renderPredictions();
+
+            function saveGames() {
+                localStorage.setItem('games', JSON.stringify(games));
+            }
+
+            function loadGames() {
+                const saved = localStorage.getItem('games');
+                if (saved) {
+                    games = JSON.parse(saved);
+                } else {
+                    games = []; // make sure we don’t carry over stale stuff
+                }
+            }
+
+            function renderPredictions() {
+                const container = document.getElementById('predictionsList');
+                container.innerHTML = '';
+                games.forEach((g,i) => {
+
+                    if (!g.home || !g.away) return;
+
+                    const row = document.createElement('div');
+                    row.classList.add('predictionTabText');
+                    row.innerHTML = `
+                      <label>
+                        <input type="radio" name="game${i}" value="home" ${g.prediction==='home'?'checked':''}>
+                        <img src="${g.home.logo}" width="30"> ${g.home.name}
+                      </label>
+
+                      <label>
+                        <input type="radio" name="game${i}" value="away" ${g.prediction==='away'?'checked':''}>
+                        <img src="${g.away.logo}" width="30"> ${g.away.name}
+                      </label>
+                    `;
+                    container.appendChild(row);
+                });
+            }
+
+            document.addEventListener('change', e => {
+                if (e.target.name && e.target.name.startsWith('game')) {
+                    const i = parseInt(e.target.name.replace('game',''));
+                    games[i].prediction = e.target.value; // 'home' or 'away'
+                    saveGames();
+                }
+            });
+
+            const clearAllBtn = document.getElementById('clearAllGames');
+
+            clearAllBtn.addEventListener('click', () => {
+                // Reset games
+                games = [];
+
+                // Clear UI
+                matchupSpace.innerHTML = '';
+                document.getElementById('predictionsList').innerHTML = '';
+
+                // Save empty array
+                localStorage.setItem('games', JSON.stringify(games));
+
+                // Refresh predictions UI
+                renderPredictions();
             });
         });
     </script>

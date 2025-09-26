@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        #backgroundDiv {
+            background-color: #0b0f14;
+            height: 98vh;
+            width: 99vw;
+            border-radius: 20px;
+            padding: 10px;
+        }
+        body {
+            background-color: #26de78;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mainButtons {
+            border: solid 2px #26de78;
+            background-color: #e1e7ed;
+            border-radius: 10px;
+            font-size: 20px;
+            font-family: 'itim', cursive;
+            padding: 4px;
+            margin-left: 5px;
+            margin-right: 5px;
+        }
+        .mainButtons:hover {
+            background-color: #c3cdd6;
+        }
+        #mainButtons {
+            display: flex;
+            justify-content: center;
+        }
+        #matchups {
+            display: flex;
+            flex-direction: column;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .matchupBox {
+            background-color: #e1e7ed;
+            border: 2px solid #26de78;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 12px;
+
+            display: flex;
+            flex-direction: column;
+            flex-wrap: wrap;
+        }
+        .addGameButton {
+            border-radius: 6px;
+            border: 2px solid #26de78;
+            font-size: 15px;
+            font-family: 'itim', cursive;
+        }
+        .addGameButton:hover {
+            background-color: #e1f2e3;
+        }
+        .parlayTitle {
+            font-family: 'itim', cursive;
+            text-align: center;
+            margin-bottom: 3px;
+        }
+        .matchUpTeamsSection {
+            margin: 10px;
+        }
+        .versusText {
+            margin-left: 3px;
+            margin-right: 3px;
+        }
+        .selectTeamButton1 {
+            border-radius: 7px;
+            border: solid 2px #41bbf0;
+        }
+        .selectTeamButton1:hover, .oddsInput1:hover {
+            background-color: #b9f3fa;
+        }
+        .selectTeamButton2 {
+            border-radius: 7px;
+            border: solid 2px #e80c05;
+        }
+        .selectTeamButton2:hover, .oddsInput2:hover {
+            background-color: #f0c9cb;
+        }
+        #weekNum {
+            color: white;
+            margin: 10px;
+        }
+        #matchupSpace {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        .hidden {
+            display: none !important;
+        }
+        #rankingsSection {
+           height: 85%;
+           display: flex;
+           flex-direction: column;
+        }
+
+        #saveOrder {
+           align-self: center;
+           border: solid 2px #26de78;
+           background-color: #e1e7ed;
+           border-radius: 8px;
+           font-size: 16px;
+           padding: 5px 10px;
+           margin-bottom: 8px;
+           cursor: pointer;
+        }
+
+        #saveOrder:hover {
+           background-color: #c3cdd6;
+        }
+
+        #teamList {
+           display: flex;
+           flex-direction: column;
+           gap: 10px;
+           overflow-y: auto;
+           padding-right: 5px;
+           margin-top: 10px;
+        }
+
+        .teamCard {
+           display: flex;
+           align-items: center;
+           background-color: #e1e7ed;
+           color: black;
+           border: 2px solid #26de78;
+           border-radius: 10px;
+           padding: 10px;
+           cursor: grab;
+        }
+
+        .teamCard img {
+           width: 40px;
+           height: 40px;
+           object-fit: contain;
+           margin-right: 10px;
+        }
+
+        .teamInfo {
+           display: flex;
+           flex-direction: column;
+        }
+
+        .teamName {
+           font-weight: bold;
+        }
+
+        .teamRank {
+           font-size: 14px;
+           color: #555;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Itim&amp;display=swap" rel="stylesheet">
+    <title>NFL Tool Thingy</title>
+  </head>
+  <body>
+    <div id='backgroundDiv'>
+        <section id='mainButtons'>
+            <button id='addMatchup' class='mainButtons'>Add Matchups</button>
+            <button id='rankings' class='mainButtons'>Rankings</button>
+            <button id='predictions' class='mainButtons'>Predictions</button>
+            <button id='standings' class='mainButtons'>Standings</button>
+            <button id='schedules' class='mainButtons'>Schedules</button>
+        </section>
+        <section id='matchups'>
+            <div id='weekNum'>
+                <label id='weekNumLabel'>Week:</label>
+                <input type='number' id='weekNumInput' min='1' max='17' step='1' value='1'>
+            </div>
+            <div id='matchupBox' class='matchupBox'>
+                <p3 class='parlayTitle'>Matchups</p3>
+                <button id='addGameButton' class='addGameButton'>Add Game</button>
+                <section id='matchupSpace'>
+                </section>
+            </div>
+        </section>
+
+        <section id='rankingsSection' class='hidden'>
+            <div id="teamList"></div>
+        </section>
+
+        <section id='predictionsSection' class='hidden'>
+        </section>
+
+        <section id='standingsSection' class='hidden'>
+        </section>
+
+        <section id='schedulesSection' class='hidden'>
+        </section>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script>
+        window.addEventListener("DOMContentLoaded", (event) => {
+            
+            //code for managing tabs
+            const addMatchupButton = document.getElementById('addMatchup');
+            const rankingsButton = document.getElementById('rankings');
+            const predictionsButton = document.getElementById('predictions');
+            const standingsButton = document.getElementById('standings');
+            const schedulesButton = document.getElementById('schedules');
+            const buttonsList = [addMatchupButton, rankingsButton, predictionsButton, standingsButton, schedulesButton];
+
+            const matchupSection =  document.getElementById('matchups');
+            const rankingSection =  document.getElementById('rankingsSection');
+            const predictionSection =  document.getElementById('predictionsSection');
+            const standingSection =  document.getElementById('standingsSection');
+            const scheduleSection =  document.getElementById('schedulesSection');
+            const sectionsList = [matchupSection, rankingSection, predictionSection, standingSection, scheduleSection]
+
+            buttonsList.forEach((button, index) => {
+                button.addEventListener('click', () => {
+                    sectionsList.forEach((section, j) => {
+                        if (j === index) {
+                            section.classList.remove('hidden');
+                        }
+                        else {
+                            section.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            //this adds the button for adding in matchups 
+            const addGameButton = document.getElementById('addGameButton');
+            const matchupSpace = document.getElementById('matchupSpace');
+
+            addGameButton.addEventListener('click', () => {
+                const matchUpTeamsSection = document.createElement('section');
+                matchUpTeamsSection.classList.add('matchUpTeamsSection');
+                matchupSpace.appendChild(matchUpTeamsSection);
+
+                const chooseFirstTeamButton = document.createElement('button');
+                const chooseSecondTeamButton = document.createElement('button');
+                const versusText = document.createElement('p5');
+
+                chooseFirstTeamButton.classList.add('selectTeamButton1');
+                chooseSecondTeamButton.classList.add('selectTeamButton2');
+                versusText.classList.add('versusText');
+
+                chooseFirstTeamButton.innerHTML = 'Select Team 1';
+                chooseSecondTeamButton.innerHTML = 'Select Team 2';
+                versusText.innerHTML = 'vs';
+
+                matchUpTeamsSection.appendChild(chooseFirstTeamButton);
+                matchUpTeamsSection.appendChild(versusText);
+                matchUpTeamsSection.appendChild(chooseSecondTeamButton);
+            });
+
+            //rankings tab stuff
+            const teams = [
+                { name: "Arizona Cardinals", rank: 1, logo: "logos/cardinals.png" },
+                { name: "Atlanta Falcons", rank: 2, logo: "logos/falcons.png" },
+                { name: "Baltimore Ravens", rank: 3, logo: "logos/ravens.png" },
+                { name: "Buffalo Bills", rank: 4, logo: "logos/bills.png" },
+                { name: "Carolina Panthers", rank: 5, logo: "logos/panthers.png" },
+                { name: "Chicago Bears", rank: 6, logo: "logos/bears.png" },
+                { name: "Cincinnati Bengals", rank: 7, logo: "logos/bengals.png" },
+                { name: "Cleveland Browns", rank: 8, logo: "logos/browns.png" },
+                { name: "Dallas Cowboys", rank: 9, logo: "logos/cowboys.png" },
+                { name: "Denver Broncos", rank: 10, logo: "logos/broncos.png" },
+                { name: "Detroit Lions", rank: 11, logo: "logos/lions.png" },
+                { name: "Green Bay Packers", rank: 12, logo: "logos/packers.png" },
+                { name: "Houston Texans", rank: 13, logo: "logos/texans.png" },
+                { name: "Indianapolis Colts", rank: 14, logo: "logos/colts.png" },
+                { name: "Jacksonville Jaguars", rank: 15, logo: "logos/jaguars.png" },
+                { name: "Kansas City Chiefs", rank: 16, logo: "logos/chiefs.png" },
+                { name: "Las Vegas Raiders", rank: 17, logo: "logos/raiders.png" },
+                { name: "Los Angeles Chargers", rank: 18, logo: "logos/chargers.png" },
+                { name: "Los Angeles Rams", rank: 19, logo: "logos/rams.png" },
+                { name: "Miami Dolphins", rank: 20, logo: "logos/dolphins.png" },
+                { name: "Minnesota Vikings", rank: 21, logo: "logos/vikings.png" },
+                { name: "New England Patriots", rank: 22, logo: "logos/patriots.png" },
+                { name: "New Orleans Saints", rank: 23, logo: "logos/saints.png" },
+                { name: "New York Giants", rank: 24, logo: "logos/giants.png" },
+                { name: "New York Jets", rank: 25, logo: "logos/jets.png" },
+                { name: "Philadelphia Eagles", rank: 26, logo: "logos/eagles.png" },
+                { name: "Pittsburgh Steelers", rank: 27, logo: "logos/steelers.png" },
+                { name: "San Francisco 49ers", rank: 28, logo: "logos/49ers.png" },
+                { name: "Seattle Seahawks", rank: 29, logo: "logos/seahawks.png" },
+                { name: "Tampa Bay Buccaneers", rank: 30, logo: "logos/buccaneers.png" },
+                { name: "Tennessee Titans", rank: 31, logo: "logos/titans.png" },
+                { name: "Washington Commanders", rank: 32, logo: "logos/commanders.png" }
+            ];
+
+            const teamList = document.getElementById("teamList");
+
+            // render function
+            function renderTeams(teamArray) {
+                teamList.innerHTML = "";
+                teamArray.forEach((team, index) => {
+                const card = document.createElement("div");
+                card.className = "teamCard";
+
+                const img = document.createElement("img");
+                img.src = team.logo;
+                img.alt = team.name;
+
+                const info = document.createElement("div");
+                info.className = "teamInfo";
+
+                const name = document.createElement("span");
+                name.className = "teamName";
+                name.textContent = team.name;
+
+                const rank = document.createElement("span");
+                rank.className = "teamRank";
+                rank.textContent = `Rank: ${index + 1}`;
+
+                info.appendChild(name);
+                info.appendChild(rank);
+
+                card.appendChild(img);
+                card.appendChild(info);
+
+                teamList.appendChild(card);
+                });
+            }
+
+            // load from localStorage
+            const saved = localStorage.getItem("teamRankings");
+            if (saved) {
+                renderTeams(JSON.parse(saved));
+            } else {
+               renderTeams(teams);
+            }
+
+            // initialize Sortable
+            new Sortable(teamList, {
+                animation: 150,
+                onEnd: () => {
+                // build updated array and save to localStorage
+                const updated = [...teamList.children].map((card, index) => {
+                    card.querySelector(".teamRank").textContent = `Rank: ${index + 1}`;
+                    return {
+                    name: card.querySelector(".teamName").textContent,
+                    logo: card.querySelector("img").getAttribute("src")
+                    };
+                });
+                localStorage.setItem("teamRankings", JSON.stringify(updated));
+                }
+            });
+        });
+    </script>
+  </body>
+</html>
